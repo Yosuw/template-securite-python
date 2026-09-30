@@ -30,6 +30,7 @@ def test_capture_init():
     assert capture.packets == []
     assert capture.protocols == {}
     assert capture.attacks == []
+    assert capture.flag is None
 
 
 def test_given_capture_when_capture_traffic_then_packets_are_stored():
@@ -161,7 +162,40 @@ def test_detect_syn_scan_with_legitimate_traffic():
     # Then
     assert capture.attacks == []
 
+def test_detect_sql_injection():
+    # Given
+    capture = Capture()
+    # Requete HTTP avec une injection SQL encodee dans l'URL et le flag
+    payload = b"GET /login?user=admin%27+or+1%3D1--&token=ESGI%7BTest_Flag%7D HTTP/1.1"
+    capture.packets = [
+        Ether(src="aa:bb:cc:dd:ee:ff") / IP(src="10.0.0.5") / TCP(dport=80) / Raw(payload)
+    ]
 
+    # When
+    capture.detect_sql_injection()
+
+    # Then
+    assert capture.attacks == [
+        {"type": "sql_injection", "protocol": "TCP", "ip": "10.0.0.5", "attacker": "aa:bb:cc:dd:ee:ff"}
+    ]
+    assert capture.flag == "ESGI{Test_Flag}"
+
+
+def test_detect_sql_injection_with_legitimate_traffic():
+    # Given
+    capture = Capture()
+    payload = b"GET /index.html?page=accueil HTTP/1.1"
+    capture.packets = [
+        Ether(src="11:11:11:11:11:11") / IP(src="10.0.0.2") / TCP(dport=80) / Raw(payload)
+    ]
+
+    # When
+    capture.detect_sql_injection()
+
+    # Then
+    assert capture.attacks == []
+    assert capture.flag is None
+    
 def test_analyse():
     # Given
     capture = Capture()

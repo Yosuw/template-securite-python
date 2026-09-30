@@ -1,4 +1,6 @@
-from scapy.all import sniff, ARP, IP, TCP, Ether
+from urllib.parse import unquote_plus
+
+from scapy.all import sniff, ARP, IP, TCP, Ether, Raw
 
 from src.tp1.utils.lib import choose_interface
 from tp1.utils.config import logger
@@ -11,6 +13,7 @@ class Capture:
         self.packets = []    # liste des paquets captures
         self.protocols = {}  # nom du protocole -> nombre de paquets
         self.attacks = []    # liste des attaques detectees
+        self.flag = None     # flag trouve dans l'injection SQL
 
     def capture_traffic(self) -> None:
         """
@@ -93,6 +96,28 @@ class Capture:
         for ip in ports:
             if len(ports[ip]) > 15:
                 self.add_attack("syn_scan", "TCP", ip, macs[ip])
+
+    def detect_sql_injection(self) -> None:
+        """
+        Detecte une injection SQL dans le contenu des paquets TCP et recupere le flag
+        """
+        # Mots cles typiques d'une injection SQL
+        keywords = ["' or", "union select", "1=1", "--", "drop table"]
+        for pkt in self.packets:
+            # On regarde seulement les paquets TCP qui ont des donnees
+            if pkt.haslayer(IP) and pkt.haslayer(TCP) and pkt.haslayer(Raw):
+                # Decodage des caracteres encodes dans les URL (%27 -> ', + -> espace...)
+                data = unquote_plus(pkt[Raw].load.decode(errors="ignore"))
+                data_lower = data.lower()
+                for word in keywords:
+                    if word in data_lower:
+                        self.add_attack("sql_injection", "TCP", pkt[IP].src, pkt[Ether].src)
+                        # Recherche du flag ESGI{...} dans le paquet
+                        start = data_lower.find("esgi{")
+                        if start != -1:
+                            end = data.find("}", start)
+                            self.flag = data[start:end + 1]
+                        break
 
     def analyse(self, protocols: str) -> None:
         """
