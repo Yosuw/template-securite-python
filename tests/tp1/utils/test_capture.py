@@ -17,18 +17,21 @@ def test_capture_init():
     # Then
     assert capture.interface == "eth0"
     assert capture.summary == ""
+    assert capture.packets == []
 
 
-def test_given_capture_when_capture_traffic_then_interface_is_set():
+def test_given_capture_when_capture_traffic_then_packets_are_stored():
     # Given
     capture = Capture()
 
     # When
-    capture.capture_traffic()
+    # On simule sniff pour ne pas faire une vraie capture pendant les tests
+    with patch("src.tp1.utils.capture.sniff", return_value=["pkt1", "pkt2"]) as mock_sniff:
+        capture.capture_traffic()
 
     # Then
-    # This is a minimal test since the method doesn't do much yet
-    assert capture.interface == "eth0"
+    mock_sniff.assert_called_once_with(iface="eth0", timeout=60)
+    assert capture.packets == ["pkt1", "pkt2"]
 
 
 def test_sort_network_protocols():
