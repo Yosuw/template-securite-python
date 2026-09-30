@@ -1,4 +1,4 @@
-from scapy.all import sniff, ARP
+from scapy.all import sniff, ARP, IP, TCP, Ether
 
 from src.tp1.utils.lib import choose_interface
 from tp1.utils.config import logger
@@ -73,6 +73,26 @@ class Capture:
                     self.add_attack("arp_spoofing", "ARP", ip, mac)
                 elif ip not in table:
                     table[ip] = mac
+
+    def detect_syn_scan(self) -> None:
+        """
+        Detecte un scan SYN : une IP qui envoie des SYN sur beaucoup de ports differents
+        """
+        ports = {}  # IP source -> liste des ports cibles
+        macs = {}   # IP source -> MAC source
+        for pkt in self.packets:
+            # On ne garde que les paquets TCP avec uniquement le flag SYN
+            if pkt.haslayer(IP) and pkt.haslayer(TCP) and pkt[TCP].flags == "S":
+                ip = pkt[IP].src
+                if ip not in ports:
+                    ports[ip] = []
+                if pkt[TCP].dport not in ports[ip]:
+                    ports[ip].append(pkt[TCP].dport)
+                macs[ip] = pkt[Ether].src
+        # Au dela de 15 ports differents, on considere que c'est un scan
+        for ip in ports:
+            if len(ports[ip]) > 15:
+                self.add_attack("syn_scan", "TCP", ip, macs[ip])
 
     def analyse(self, protocols: str) -> None:
         """

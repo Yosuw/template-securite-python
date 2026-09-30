@@ -128,6 +128,40 @@ def test_detect_arp_spoofing_with_legitimate_traffic():
     assert capture.attacks == []
 
 
+def test_detect_syn_scan():
+    # Given
+    capture = Capture()
+    # L'attaquant envoie un SYN sur 20 ports differents
+    capture.packets = [
+        Ether(src="aa:bb:cc:dd:ee:ff") / IP(src="10.0.0.5") / TCP(dport=port, flags="S")
+        for port in range(1, 21)
+    ]
+
+    # When
+    capture.detect_syn_scan()
+
+    # Then
+    assert capture.attacks == [
+        {"type": "syn_scan", "protocol": "TCP", "ip": "10.0.0.5", "attacker": "aa:bb:cc:dd:ee:ff"}
+    ]
+
+
+def test_detect_syn_scan_with_legitimate_traffic():
+    # Given
+    capture = Capture()
+    # Quelques connexions normales sur peu de ports
+    capture.packets = [
+        Ether(src="11:11:11:11:11:11") / IP(src="10.0.0.2") / TCP(dport=port, flags="S")
+        for port in [80, 443, 22]
+    ]
+
+    # When
+    capture.detect_syn_scan()
+
+    # Then
+    assert capture.attacks == []
+
+
 def test_analyse():
     # Given
     capture = Capture()
