@@ -70,19 +70,44 @@ class Capture:
 
     def detect_arp_spoofing(self) -> None:
         """
-        Detecte l'ARP spoofing : une meme IP annoncee avec deux MAC differentes
+        Detecte l'ARP spoofing : une meme IP annoncee avec plusieurs MAC,
+        l'attaquant etant celui qui envoie des reponses ARP non sollicitees
         """
-        table = {}  # IP -> MAC vue en premier
-        for pkt in self.packets:
-            # op == 2 correspond a une reponse ARP (is-at)
-            if pkt.haslayer(ARP) and pkt[ARP].op == 2:
-                ip = pkt[ARP].psrc
-                mac = pkt[ARP].hwsrc
-                # Si l'IP est deja connue avec une autre MAC, c'est suspect
-                if ip in table and table[ip] != mac:
+        requests = []     # requetes ARP en attente de reponse : (IP demandeur, IP demandee)
+        macs = {}         # IP annoncee -> liste des MAC vues pour cette IP
+        unsolicited = {}  # IP annoncee -> liste des MAC qui ont repondu sans qu'on leur demande
+
+        # Les paquets ne sont pas forcement dans l'ordre : on les trie par date
+        packets = sorted(self.packets, key=lambda p: p.time)
+        for pkt in packets:
+            if not pkt.haslayer(ARP):
+                continue
+            arp = pkt[ARP]
+            # op == 1 : requete ARP (who-has), on la garde en attente
+            if arp.op == 1:
+                requests.append((arp.psrc, arp.pdst))
+            # op == 2 : reponse ARP (is-at)
+            elif arp.op == 2:
+                ip = arp.psrc
+                mac = arp.hwsrc
+                if ip not in macs:
+                    macs[ip] = []
+                if mac not in macs[ip]:
+                    macs[ip].append(mac)
+                # La reponse est legitime seulement si quelqu'un a demande cette IP
+                if (arp.pdst, ip) in requests:
+                    requests.remove((arp.pdst, ip))
+                else:
+                    if ip not in unsolicited:
+                        unsolicited[ip] = []
+                    if mac not in unsolicited[ip]:
+                        unsolicited[ip].append(mac)
+
+        # Spoofing : plusieurs MAC pour une IP, on accuse celles qui repondent sans demande
+        for ip in macs:
+            if len(macs[ip]) > 1:
+                for mac in unsolicited.get(ip, []):
                     self.add_attack("arp_spoofing", "ARP", ip, mac)
-                elif ip not in table:
-                    table[ip] = mac
 
     def detect_syn_scan(self) -> None:
         """

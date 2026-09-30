@@ -122,11 +122,34 @@ def test_detect_arp_spoofing():
     # Given
     capture = Capture()
     capture.packets = [
-        # Reponse legitime du routeur
-        Ether() / ARP(op=2, psrc="192.168.1.1", hwsrc="11:11:11:11:11:11"),
-        # L'attaquant annonce la meme IP avec sa propre MAC
-        Ether() / ARP(op=2, psrc="192.168.1.1", hwsrc="aa:bb:cc:dd:ee:ff"),
+        # La victime demande la MAC du routeur
+        Ether() / ARP(op=1, psrc="192.168.1.10", pdst="192.168.1.1"),
+        # Le vrai routeur repond a la demande
+        Ether() / ARP(op=2, psrc="192.168.1.1", hwsrc="11:11:11:11:11:11", pdst="192.168.1.10"),
+        # L'attaquant envoie une reponse sans qu'on lui demande
+        Ether() / ARP(op=2, psrc="192.168.1.1", hwsrc="aa:bb:cc:dd:ee:ff", pdst="192.168.1.10"),
     ]
+
+    # When
+    capture.detect_arp_spoofing()
+
+    # Then
+    assert capture.attacks == [
+        {"type": "arp_spoofing", "protocol": "ARP", "ip": "192.168.1.1", "attacker": "aa:bb:cc:dd:ee:ff"}
+    ]
+
+
+def test_detect_arp_spoofing_with_unordered_packets():
+    # Given
+    capture = Capture()
+    request = Ether() / ARP(op=1, psrc="192.168.1.10", pdst="192.168.1.1")
+    request.time = 1
+    legit = Ether() / ARP(op=2, psrc="192.168.1.1", hwsrc="11:11:11:11:11:11", pdst="192.168.1.10")
+    legit.time = 2
+    attack = Ether() / ARP(op=2, psrc="192.168.1.1", hwsrc="aa:bb:cc:dd:ee:ff", pdst="192.168.1.10")
+    attack.time = 3
+    # L'attaque apparait en premier dans le fichier, mais elle est la plus recente
+    capture.packets = [attack, legit, request]
 
     # When
     capture.detect_arp_spoofing()
