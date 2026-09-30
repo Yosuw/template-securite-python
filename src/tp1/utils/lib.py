@@ -1,5 +1,7 @@
 from scapy.all import get_if_list
 
+from tp1.utils.config import logger
+
 
 def hello_world() -> str:
     """
@@ -20,7 +22,7 @@ def choose_interface() -> str:
     # Liste des interfaces reseau disponibles sur la machine
     interfaces = get_if_list()
     for i in range(len(interfaces)):
-        print(f"{i} : {interfaces[i]}")
+        logger.info(f"{i} : {interfaces[i]}")
 
     # On redemande tant que le choix n'est pas valide
     while interface == "":
@@ -28,5 +30,5 @@ def choose_interface() -> str:
         if choice.isdigit() and int(choice) < len(interfaces):
             interface = interfaces[int(choice)]
         else:
-            print("Choix invalide")
+            logger.warning("Choix invalide")
     return interface
