@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import patch
+from scapy.all import Ether, IP, TCP, ARP, Raw
 from src.tp1.utils.capture import Capture
 
 
@@ -10,6 +11,15 @@ def mock_interface():
         yield
 
 
+def fake_packets():
+    # Paquets construits a la main pour les tests
+    return [
+        Ether() / IP() / TCP(),
+        Ether() / IP() / TCP() / Raw(b"test"),
+        Ether() / ARP(),
+    ]
+
+
 def test_capture_init():
     # When
     capture = Capture()
@@ -18,6 +28,7 @@ def test_capture_init():
     assert capture.interface == "eth0"
     assert capture.summary == ""
     assert capture.packets == []
+    assert capture.protocols == {}
 
 
 def test_given_capture_when_capture_traffic_then_packets_are_stored():
@@ -34,18 +45,7 @@ def test_given_capture_when_capture_traffic_then_packets_are_stored():
     assert capture.packets == ["pkt1", "pkt2"]
 
 
-def test_sort_network_protocols():
-    # Given
-    capture = Capture()
-
-    # When
-    result = capture.sort_network_protocols()
-
-    # Then
-    assert result == ""  # Method currently returns None
-
-
-def test_get_all_protocols():
+def test_get_all_protocols_without_packets():
     # Given
     capture = Capture()
 
@@ -53,7 +53,32 @@ def test_get_all_protocols():
     result = capture.get_all_protocols()
 
     # Then
-    assert result == ""  # Method currently returns None
+    assert result == {}
+
+
+def test_get_all_protocols():
+    # Given
+    capture = Capture()
+    capture.packets = fake_packets()
+
+    # When
+    result = capture.get_all_protocols()
+
+    # Then
+    # Ether et Raw ne doivent pas etre comptes
+    assert result == {"IP": 2, "TCP": 2, "ARP": 1}
+
+
+def test_sort_network_protocols():
+    # Given
+    capture = Capture()
+    capture.protocols = {"ARP": 1, "TCP": 5, "UDP": 3}
+
+    # When
+    result = capture.sort_network_protocols()
+
+    # Then
+    assert list(result.items()) == [("TCP", 5), ("UDP", 3), ("ARP", 1)]
 
 
 def test_analyse():

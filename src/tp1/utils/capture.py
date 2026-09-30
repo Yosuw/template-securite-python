@@ -8,7 +8,8 @@ class Capture:
     def __init__(self) -> None:
         self.interface = choose_interface()
         self.summary = ""
-        self.packets = []  # liste des paquets captures
+        self.packets = []    # liste des paquets captures
+        self.protocols = {}  # nom du protocole -> nombre de paquets
 
     def capture_traffic(self) -> None:
         """
@@ -20,17 +21,31 @@ class Capture:
         self.packets = sniff(iface=interface, timeout=60)
         logger.info(f"{len(self.packets)} paquets captures")
 
-    def sort_network_protocols(self) -> str:
+    def sort_network_protocols(self) -> dict:
         """
         Sort and return all captured network protocols
         """
-        return ""
+        # Tri du dictionnaire par nombre de paquets, du plus grand au plus petit
+        return dict(sorted(self.protocols.items(), key=lambda x: x[1], reverse=True))
 
-    def get_all_protocols(self) -> str:
+    def get_all_protocols(self) -> dict:
         """
         Return all protocols captured with total packets number
         """
-        return ""
+        self.protocols = {}
+        for pkt in self.packets:
+            # Un paquet contient plusieurs couches (ex : Ether / IP / TCP)
+            for layer in pkt.layers():
+                name = layer.__name__
+                # On ignore les couches qui ne sont pas des protocoles interessants
+                if name in ["Ether", "Raw", "Padding"]:
+                    continue
+                # On incremente le compteur du protocole
+                if name in self.protocols:
+                    self.protocols[name] += 1
+                else:
+                    self.protocols[name] = 1
+        return self.protocols
 
     def analyse(self, protocols: str) -> None:
         """
