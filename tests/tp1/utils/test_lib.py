@@ -1,5 +1,6 @@
 from unittest.mock import patch
-from src.tp1.utils.lib import hello_world, choose_interface
+
+from src.tp1.utils.lib import choose_interface, hello_world
 
 
 def test_when_hello_world_then_return_hello_world():

@@ -1,6 +1,8 @@
-import pytest
 from unittest.mock import patch
-from scapy.all import Ether, IP, TCP, ARP, Raw
+
+import pytest
+from scapy.all import ARP, IP, TCP, Ether, Raw
+
 from src.tp1.utils.capture import Capture, is_http
 
 
@@ -40,12 +42,15 @@ def test_given_capture_when_capture_traffic_then_packets_are_stored():
 
     # When
     # On simule sniff pour ne pas faire une vraie capture pendant les tests
-    with patch("src.tp1.utils.capture.sniff", return_value=["pkt1", "pkt2"]) as mock_sniff:
+    with patch(
+        "src.tp1.utils.capture.sniff", return_value=["pkt1", "pkt2"]
+    ) as mock_sniff:
         capture.capture_traffic()
 
     # Then
     mock_sniff.assert_called_once_with(iface="eth0", timeout=60)
     assert capture.packets == ["pkt1", "pkt2"]
+
 
 def test_capture_init_with_pcap():
     # When
@@ -97,7 +102,9 @@ def test_get_all_protocols():
 def test_get_all_protocols_with_http():
     # Given
     capture = Capture()
-    capture.packets = [Ether() / IP() / TCP() / Raw(b"GET /index.html HTTP/1.1\r\n\r\n")]
+    capture.packets = [
+        Ether() / IP() / TCP() / Raw(b"GET /index.html HTTP/1.1\r\n\r\n")
+    ]
 
     # When
     result = capture.get_all_protocols()
@@ -144,9 +151,11 @@ def test_detect_arp_spoofing():
         # La victime demande la MAC du routeur
         Ether() / ARP(op=1, psrc="192.168.1.10", pdst="192.168.1.1"),
         # Le vrai routeur repond a la demande
-        Ether() / ARP(op=2, psrc="192.168.1.1", hwsrc="11:11:11:11:11:11", pdst="192.168.1.10"),
+        Ether()
+        / ARP(op=2, psrc="192.168.1.1", hwsrc="11:11:11:11:11:11", pdst="192.168.1.10"),
         # L'attaquant envoie une reponse sans qu'on lui demande
-        Ether() / ARP(op=2, psrc="192.168.1.1", hwsrc="aa:bb:cc:dd:ee:ff", pdst="192.168.1.10"),
+        Ether()
+        / ARP(op=2, psrc="192.168.1.1", hwsrc="aa:bb:cc:dd:ee:ff", pdst="192.168.1.10"),
     ]
 
     # When
@@ -154,7 +163,12 @@ def test_detect_arp_spoofing():
 
     # Then
     assert capture.attacks == [
-        {"type": "arp_spoofing", "protocol": "ARP", "ip": "192.168.1.1", "attacker": "aa:bb:cc:dd:ee:ff"}
+        {
+            "type": "arp_spoofing",
+            "protocol": "ARP",
+            "ip": "192.168.1.1",
+            "attacker": "aa:bb:cc:dd:ee:ff",
+        }
     ]
 
 
@@ -163,9 +177,13 @@ def test_detect_arp_spoofing_with_unordered_packets():
     capture = Capture()
     request = Ether() / ARP(op=1, psrc="192.168.1.10", pdst="192.168.1.1")
     request.time = 1
-    legit = Ether() / ARP(op=2, psrc="192.168.1.1", hwsrc="11:11:11:11:11:11", pdst="192.168.1.10")
+    legit = Ether() / ARP(
+        op=2, psrc="192.168.1.1", hwsrc="11:11:11:11:11:11", pdst="192.168.1.10"
+    )
     legit.time = 2
-    attack = Ether() / ARP(op=2, psrc="192.168.1.1", hwsrc="aa:bb:cc:dd:ee:ff", pdst="192.168.1.10")
+    attack = Ether() / ARP(
+        op=2, psrc="192.168.1.1", hwsrc="aa:bb:cc:dd:ee:ff", pdst="192.168.1.10"
+    )
     attack.time = 3
     # L'attaque apparait en premier dans le fichier, mais elle est la plus recente
     capture.packets = [attack, legit, request]
@@ -175,7 +193,12 @@ def test_detect_arp_spoofing_with_unordered_packets():
 
     # Then
     assert capture.attacks == [
-        {"type": "arp_spoofing", "protocol": "ARP", "ip": "192.168.1.1", "attacker": "aa:bb:cc:dd:ee:ff"}
+        {
+            "type": "arp_spoofing",
+            "protocol": "ARP",
+            "ip": "192.168.1.1",
+            "attacker": "aa:bb:cc:dd:ee:ff",
+        }
     ]
 
 
@@ -208,7 +231,12 @@ def test_detect_port_scan():
 
     # Then
     assert capture.attacks == [
-        {"type": "port_scan", "protocol": "TCP", "ip": "10.0.0.5", "attacker": "aa:bb:cc:dd:ee:ff"}
+        {
+            "type": "port_scan",
+            "protocol": "TCP",
+            "ip": "10.0.0.5",
+            "attacker": "aa:bb:cc:dd:ee:ff",
+        }
     ]
 
 
@@ -227,13 +255,17 @@ def test_detect_syn_scan_with_legitimate_traffic():
     # Then
     assert capture.attacks == []
 
+
 def test_detect_sql_injection():
     # Given
     capture = Capture()
     # Requete HTTP avec une injection SQL encodee dans l'URL et le flag
     payload = b"GET /login?user=admin%27+or+1%3D1--&token=ESGI%7BTest_Flag%7D HTTP/1.1"
     capture.packets = [
-        Ether(src="aa:bb:cc:dd:ee:ff") / IP(src="10.0.0.5") / TCP(dport=80) / Raw(payload)
+        Ether(src="aa:bb:cc:dd:ee:ff")
+        / IP(src="10.0.0.5")
+        / TCP(dport=80)
+        / Raw(payload)
     ]
 
     # When
@@ -241,9 +273,15 @@ def test_detect_sql_injection():
 
     # Then
     assert capture.attacks == [
-        {"type": "sql_injection", "protocol": "TCP", "ip": "10.0.0.5", "attacker": "aa:bb:cc:dd:ee:ff"}
+        {
+            "type": "sql_injection",
+            "protocol": "TCP",
+            "ip": "10.0.0.5",
+            "attacker": "aa:bb:cc:dd:ee:ff",
+        }
     ]
     assert capture.flag == "ESGI{Test_Flag}"
+
 
 def test_detect_sql_injection_ignores_fake_flags():
     # Given
@@ -263,13 +301,17 @@ def test_detect_sql_injection_ignores_fake_flags():
     # Then
     assert capture.flag == "ESGI{vrai}"
     assert len(capture.attacks) == 1
-    
+
+
 def test_detect_sql_injection_with_legitimate_traffic():
     # Given
     capture = Capture()
     payload = b"GET /index.html?page=accueil HTTP/1.1"
     capture.packets = [
-        Ether(src="11:11:11:11:11:11") / IP(src="10.0.0.2") / TCP(dport=80) / Raw(payload)
+        Ether(src="11:11:11:11:11:11")
+        / IP(src="10.0.0.2")
+        / TCP(dport=80)
+        / Raw(payload)
     ]
 
     # When
@@ -278,6 +320,7 @@ def test_detect_sql_injection_with_legitimate_traffic():
     # Then
     assert capture.attacks == []
     assert capture.flag is None
+
 
 def test_get_json_attacks():
     # Given
@@ -295,7 +338,8 @@ def test_get_json_attacks():
         {"type": "port_scan", "attacker": "10.0.0.5"},
         {"type": "sql_injection", "attacker": "10.0.0.9"},
     ]
-       
+
+
 def test_analyse():
     # Given
     capture = Capture()

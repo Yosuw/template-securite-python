@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
+
 from fpdf import FPDF
+
 from src.tp1.utils.report import Report
 
 
@@ -49,6 +51,7 @@ def test_concat_report_with_graph(tmp_path):
     # Given
     # On genere une vraie image PNG dans un dossier temporaire
     import pygal
+
     graph_path = str(tmp_path / "graph.png")
     chart = pygal.Bar()
     chart.add("Paquets", [5, 1])
@@ -62,8 +65,8 @@ def test_concat_report_with_graph(tmp_path):
 
     # Then
     assert isinstance(result, FPDF)
-    
-      
+
+
 def test_save(tmp_path):
     # Given
     # tmp_path est un dossier temporaire fourni par pytest

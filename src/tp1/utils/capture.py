@@ -1,15 +1,23 @@
 from urllib.parse import unquote_plus
 
-from scapy.all import sniff, rdpcap, ARP, IP, TCP, Ether, Raw
+from scapy.all import ARP, IP, TCP, Ether, Packet, Raw, rdpcap, sniff
 
 from src.tp1.utils.lib import choose_interface
 from tp1.utils.config import logger
 
+HTTP_METHODS = (
+    "GET ",
+    "POST ",
+    "PUT ",
+    "DELETE ",
+    "HEAD ",
+    "OPTIONS ",
+    "PATCH ",
+    "HTTP/",
+)
 
-HTTP_METHODS = ("GET ", "POST ", "PUT ", "DELETE ", "HEAD ", "OPTIONS ", "PATCH ", "HTTP/")
 
-
-def is_http(pkt) -> bool:
+def is_http(pkt: Packet) -> bool:
     """
     Indique si un paquet TCP contient du HTTP (requete ou reponse)
     """
@@ -25,10 +33,10 @@ class Capture:
         # On ne demande une interface que si aucun fichier pcap n'est donne
         self.interface = "" if pcap else choose_interface()
         self.summary = ""
-        self.packets = []    # liste des paquets captures
-        self.protocols = {}  # nom du protocole -> nombre de paquets
-        self.attacks = []    # liste des attaques detectees
-        self.flag = None     # flag trouve dans l'injection SQL
+        self.packets: list[Packet] = []  # liste des paquets captures
+        self.protocols: dict[str, int] = {}  # nom du protocole -> nombre de paquets
+        self.attacks: list[dict] = []  # liste des attaques detectees
+        self.flag: str | None = None  # flag trouve dans l'injection SQL
 
     def capture_traffic(self) -> None:
         """
@@ -80,7 +88,7 @@ class Capture:
                     self.protocols[name] = 1
         return self.protocols
 
-    def add_attack(self, attack_type, protocol, ip, mac) -> None:
+    def add_attack(self, attack_type: str, protocol: str, ip: str, mac: str) -> None:
         """
         Ajoute une attaque a la liste si elle n'y est pas deja
         """
@@ -95,8 +103,8 @@ class Capture:
         Detecte l'ARP spoofing : une meme IP annoncee avec plusieurs MAC,
         l'attaquant etant celui qui envoie des reponses ARP non sollicitees
         """
-        requests = []     # requetes ARP en attente de reponse : (IP demandeur, IP demandee)
-        macs = {}         # IP annoncee -> liste des MAC vues pour cette IP
+        requests = []  # requetes ARP en attente de reponse : (IP demandeur, IP demandee)
+        macs = {}  # IP annoncee -> liste des MAC vues pour cette IP
         unsolicited = {}  # IP annoncee -> liste des MAC qui ont repondu sans qu'on leur demande
 
         # Les paquets ne sont pas forcement dans l'ordre : on les trie par date
@@ -126,8 +134,8 @@ class Capture:
                         unsolicited[ip].append(mac)
 
         # Spoofing : plusieurs MAC pour une IP, on accuse celles qui repondent sans demande
-        for ip in macs:
-            if len(macs[ip]) > 1:
+        for ip, ip_macs in macs.items():
+            if len(ip_macs) > 1:
                 for mac in unsolicited.get(ip, []):
                     self.add_attack("arp_spoofing", "ARP", ip, mac)
 
@@ -136,7 +144,7 @@ class Capture:
         Detecte un scan SYN : une IP qui envoie des SYN sur beaucoup de ports differents
         """
         ports = {}  # IP source -> liste des ports cibles
-        macs = {}   # IP source -> MAC source
+        macs = {}  # IP source -> MAC source
         for pkt in self.packets:
             # On ne garde que les paquets TCP avec uniquement le flag SYN
             if pkt.haslayer(IP) and pkt.haslayer(TCP) and pkt[TCP].flags == "S":
@@ -147,8 +155,8 @@ class Capture:
                     ports[ip].append(pkt[TCP].dport)
                 macs[ip] = pkt[Ether].src
         # Au dela de 15 ports differents, on considere que c'est un scan
-        for ip in ports:
-            if len(ports[ip]) > 15:
+        for ip, ip_ports in ports.items():
+            if len(ip_ports) > 15:
                 self.add_attack("port_scan", "TCP", ip, macs[ip])
 
     def detect_sql_injection(self) -> None:
@@ -173,7 +181,7 @@ class Capture:
                     start = request_lower.find("esgi{")
                     if start != -1 and self.flag is None:
                         end = request.find("}", start)
-                        self.flag = request[start:end + 1]
+                        self.flag = request[start : end + 1]
                     break
 
     def analyse(self, protocols: str) -> None:

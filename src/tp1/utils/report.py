@@ -5,13 +5,14 @@ from tp1.utils.capture import Capture
 
 
 class Report:
-    def __init__(self, capture: Capture, filename: str, summary: str):
+    def __init__(self, capture: Capture, filename: str, summary: str) -> None:
         self.capture = capture
         self.filename = filename
         self.title = "Rapport TP1 - Analyse du trafic reseau"
         self.summary = summary
-        self.array = []   # lignes du tableau : (protocole, nombre de paquets)
-        self.graph = ""   # chemin de l'image du graphique
+        # lignes du tableau : (protocole, nombre de paquets)
+        self.array: list[tuple[str, int]] = []
+        self.graph = ""  # chemin de l'image du graphique
 
     def concat_report(self) -> FPDF:
         """
@@ -35,7 +36,9 @@ class Report:
             # En-tete du tableau
             pdf.set_font("Helvetica", "B", 11)
             pdf.cell(90, 8, "Protocole", border=1)
-            pdf.cell(90, 8, "Nombre de paquets", border=1, new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(
+                90, 8, "Nombre de paquets", border=1, new_x="LMARGIN", new_y="NEXT"
+            )
 
             # Une ligne par protocole
             pdf.set_font("Helvetica", size=11)

@@ -28,3 +28,8 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 tp1 = "tp1.main:main"
 tp3 = "tp3.main:main"
+
+[dependency-groups]
+dev = [
+    "ruff (>=0.16.9,<0.17.0)"
+]

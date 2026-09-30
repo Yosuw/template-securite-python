@@ -1,5 +1,6 @@
 from unittest.mock import patch
-from src.tp1.main import parse_args, main
+
+from src.tp1.main import main, parse_args
 
 
 def test_parse_args():
