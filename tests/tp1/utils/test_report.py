@@ -1,4 +1,5 @@
-from unittest.mock import patch, mock_open, MagicMock
+from unittest.mock import MagicMock
+from fpdf import FPDF
 from src.tp1.utils.report import Report
 
 
@@ -14,40 +15,37 @@ def test_report_init():
     # Then
     assert report.capture == capture
     assert report.filename == filename
-    assert report.title == "TITRE DU RAPPORT"
+    assert report.title == "Rapport TP1 - Analyse du trafic reseau"
     assert report.summary == summary
-    assert report.array == ""
+    assert report.array == []
     assert report.graph == ""
 
 
 def test_concat_report():
     # Given
     report = Report(MagicMock(), "test.pdf", "Test summary")
-    report.title = "Test Title"
-    report.array = "Test Array"
-    report.graph = "Test Graph"
 
     # When
     result = report.concat_report()
 
     # Then
-    assert result == "Test TitleTest summaryTest ArrayTest Graph"
+    assert isinstance(result, FPDF)
+    assert result.page_no() == 1
 
 
-def test_save():
+def test_save(tmp_path):
     # Given
-    report = Report(MagicMock(), "test.pdf", "Test summary")
-    report.title = "Test Title"
+    # tmp_path est un dossier temporaire fourni par pytest
+    filename = str(tmp_path / "test.pdf")
+    report = Report(MagicMock(), filename, "Test summary")
 
-    # When/Then
-    with patch("builtins.open", mock_open()) as mock_file:
-        report.save("test.pdf")
+    # When
+    report.save(filename)
 
-        # Verify file was opened with correct name
-        mock_file.assert_called_once_with("test.pdf", "w")
-
-        # Verify write was called with the concatenated content
-        mock_file().write.assert_called_once_with("Test TitleTest summary")
+    # Then
+    # Un vrai fichier PDF commence toujours par %PDF
+    with open(filename, "rb") as f:
+        assert f.read(4) == b"%PDF"
 
 
 def test_generate_graph():
@@ -69,7 +67,7 @@ def test_generate_array():
     report.generate("array")
 
     # Then
-    assert report.array == ""  # Currently returns empty string
+    assert report.array == []  # Currently returns empty list
 
 
 def test_generate_invalid_param():
@@ -81,4 +79,4 @@ def test_generate_invalid_param():
 
     # Then
     assert report.graph == ""
-    assert report.array == ""
+    assert report.array == []
