@@ -1,14 +1,16 @@
 from urllib.parse import unquote_plus
 
-from scapy.all import sniff, ARP, IP, TCP, Ether, Raw
+from scapy.all import sniff, rdpcap, ARP, IP, TCP, Ether, Raw
 
 from src.tp1.utils.lib import choose_interface
 from tp1.utils.config import logger
 
 
 class Capture:
-    def __init__(self) -> None:
-        self.interface = choose_interface()
+    def __init__(self, pcap: str = "") -> None:
+        self.pcap = pcap  # fichier pcap a analyser (vide = capture en direct)
+        # On ne demande une interface que si aucun fichier pcap n'est donne
+        self.interface = "" if pcap else choose_interface()
         self.summary = ""
         self.packets = []    # liste des paquets captures
         self.protocols = {}  # nom du protocole -> nombre de paquets
@@ -19,10 +21,15 @@ class Capture:
         """
         Capture network traffic from an interface
         """
-        interface = self.interface
-        logger.info(f"Capture traffic from interface {interface}")
-        # On capture pendant 60 secondes sur l'interface choisie
-        self.packets = sniff(iface=interface, timeout=60)
+        # Lecture d'un fichier pcap si un fichier a ete donne
+        if self.pcap:
+            logger.info(f"Lecture du fichier {self.pcap}")
+            self.packets = rdpcap(self.pcap)
+        else:
+            interface = self.interface
+            logger.info(f"Capture traffic from interface {interface}")
+            # On capture pendant 60 secondes sur l'interface choisie
+            self.packets = sniff(iface=interface, timeout=60)
         logger.info(f"{len(self.packets)} paquets captures")
 
     def sort_network_protocols(self) -> dict:

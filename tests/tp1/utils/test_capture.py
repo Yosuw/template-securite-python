@@ -26,6 +26,7 @@ def test_capture_init():
 
     # Then
     assert capture.interface == "eth0"
+    assert capture.pcap == ""
     assert capture.summary == ""
     assert capture.packets == []
     assert capture.protocols == {}
@@ -45,6 +46,28 @@ def test_given_capture_when_capture_traffic_then_packets_are_stored():
     # Then
     mock_sniff.assert_called_once_with(iface="eth0", timeout=60)
     assert capture.packets == ["pkt1", "pkt2"]
+
+def test_capture_init_with_pcap():
+    # When
+    capture = Capture("test.pcap")
+
+    # Then
+    # Avec un fichier pcap, on ne demande pas d'interface
+    assert capture.pcap == "test.pcap"
+    assert capture.interface == ""
+
+
+def test_given_pcap_when_capture_traffic_then_file_is_read():
+    # Given
+    capture = Capture("test.pcap")
+
+    # When
+    with patch("src.tp1.utils.capture.rdpcap", return_value=["pkt1"]) as mock_rdpcap:
+        capture.capture_traffic()
+
+    # Then
+    mock_rdpcap.assert_called_once_with("test.pcap")
+    assert capture.packets == ["pkt1"]
 
 
 def test_get_all_protocols_without_packets():
