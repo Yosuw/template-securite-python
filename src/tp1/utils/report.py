@@ -27,6 +27,20 @@ class Report:
         # Resume de l'analyse (attaques detectees ou "tout va bien")
         pdf.set_font("Helvetica", size=11)
         pdf.multi_cell(0, 7, self.summary)
+        pdf.ln(5)
+
+        # Tableau des protocoles s'il a ete genere
+        if self.array:
+            # En-tete du tableau
+            pdf.set_font("Helvetica", "B", 11)
+            pdf.cell(90, 8, "Protocole", border=1)
+            pdf.cell(90, 8, "Nombre de paquets", border=1, new_x="LMARGIN", new_y="NEXT")
+
+            # Une ligne par protocole
+            pdf.set_font("Helvetica", size=11)
+            for protocol, count in self.array:
+                pdf.cell(90, 8, protocol, border=1)
+                pdf.cell(90, 8, str(count), border=1, new_x="LMARGIN", new_y="NEXT")
 
         return pdf
 
@@ -49,6 +63,10 @@ class Report:
             graph = ""
             self.graph = graph
         elif param == "array":
-            # TODO: generate array
+            # Protocoles tries par nombre de paquets
+            protocols = self.capture.sort_network_protocols()
+            # Construction des lignes du tableau
             array = []
+            for protocol in protocols:
+                array.append((protocol, protocols[protocol]))
             self.array = array

@@ -33,6 +33,18 @@ def test_concat_report():
     assert result.page_no() == 1
 
 
+def test_concat_report_with_array():
+    # Given
+    report = Report(MagicMock(), "test.pdf", "Test summary")
+    report.array = [("TCP", 5), ("ARP", 1)]
+
+    # When
+    result = report.concat_report()
+
+    # Then
+    assert isinstance(result, FPDF)
+
+
 def test_save(tmp_path):
     # Given
     # tmp_path est un dossier temporaire fourni par pytest
@@ -61,13 +73,15 @@ def test_generate_graph():
 
 def test_generate_array():
     # Given
-    report = Report(MagicMock(), "test.pdf", "Test summary")
+    capture = MagicMock()
+    capture.sort_network_protocols.return_value = {"TCP": 5, "ARP": 1}
+    report = Report(capture, "test.pdf", "Test summary")
 
     # When
     report.generate("array")
 
     # Then
-    assert report.array == []  # Currently returns empty list
+    assert report.array == [("TCP", 5), ("ARP", 1)]
 
 
 def test_generate_invalid_param():
