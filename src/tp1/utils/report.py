@@ -36,9 +36,7 @@ class Report:
             # En-tete du tableau
             pdf.set_font("Helvetica", "B", 11)
             pdf.cell(90, 8, "Protocole", border=1)
-            pdf.cell(
-                90, 8, "Nombre de paquets", border=1, new_x="LMARGIN", new_y="NEXT"
-            )
+            pdf.cell(90, 8, "Nombre de paquets", border=1, new_x="LMARGIN", new_y="NEXT")
 
             # Une ligne par protocole
             pdf.set_font("Helvetica", size=11)

@@ -239,7 +239,9 @@ class Capture:
         summary = "Attaques detectees :\n"
         # Une ligne par attaque avec le protocole, l'IP et la MAC de l'attaquant
         for attack in self.attacks:
-            summary += f"- {attack['type']} ({attack['protocol']}) : IP {attack['ip']}, MAC {attack['attacker']}\n"
+            summary += (
+                f"- {attack['type']} ({attack['protocol']}) : IP {attack['ip']}, MAC {attack['attacker']}\n"
+            )
         if self.flag:
             summary += f"Flag : {self.flag}\n"
         return summary
