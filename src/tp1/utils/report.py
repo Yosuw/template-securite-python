@@ -1,3 +1,4 @@
+import pygal
 from fpdf import FPDF
 
 from tp1.utils.capture import Capture
@@ -41,6 +42,11 @@ class Report:
             for protocol, count in self.array:
                 pdf.cell(90, 8, protocol, border=1)
                 pdf.cell(90, 8, str(count), border=1, new_x="LMARGIN", new_y="NEXT")
+            pdf.ln(5)
+
+        # Ajout du graphique s'il a ete genere
+        if self.graph:
+            pdf.image(self.graph, w=180)
 
         return pdf
 
@@ -59,8 +65,16 @@ class Report:
         Generate graph and array
         """
         if param == "graph":
-            # TODO: generate graph
-            graph = ""
+            # Protocoles tries par nombre de paquets
+            protocols = self.capture.sort_network_protocols()
+            # Diagramme en barres : une barre par protocole
+            chart = pygal.Bar()
+            chart.title = "Nombre de paquets par protocole"
+            chart.x_labels = list(protocols.keys())
+            chart.add("Paquets", list(protocols.values()))
+            # Export en PNG pour pouvoir l'inserer dans le PDF
+            graph = "graph.png"
+            chart.render_to_png(graph)
             self.graph = graph
         elif param == "array":
             # Protocoles tries par nombre de paquets

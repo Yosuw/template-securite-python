@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from fpdf import FPDF
 from src.tp1.utils.report import Report
 
@@ -45,6 +45,25 @@ def test_concat_report_with_array():
     assert isinstance(result, FPDF)
 
 
+def test_concat_report_with_graph(tmp_path):
+    # Given
+    # On genere une vraie image PNG dans un dossier temporaire
+    import pygal
+    graph_path = str(tmp_path / "graph.png")
+    chart = pygal.Bar()
+    chart.add("Paquets", [5, 1])
+    chart.render_to_png(graph_path)
+
+    report = Report(MagicMock(), "test.pdf", "Test summary")
+    report.graph = graph_path
+
+    # When
+    result = report.concat_report()
+
+    # Then
+    assert isinstance(result, FPDF)
+    
+      
 def test_save(tmp_path):
     # Given
     # tmp_path est un dossier temporaire fourni par pytest
@@ -62,13 +81,19 @@ def test_save(tmp_path):
 
 def test_generate_graph():
     # Given
-    report = Report(MagicMock(), "test.pdf", "Test summary")
+    capture = MagicMock()
+    capture.sort_network_protocols.return_value = {"TCP": 5, "ARP": 1}
+    report = Report(capture, "test.pdf", "Test summary")
 
     # When
-    report.generate("graph")
+    # On simule pygal pour ne pas creer de fichier pendant le test
+    with patch("src.tp1.utils.report.pygal") as mock_pygal:
+        report.generate("graph")
 
     # Then
-    assert report.graph == ""  # Currently returns empty string
+    mock_pygal.Bar().add.assert_called_once_with("Paquets", [5, 1])
+    mock_pygal.Bar().render_to_png.assert_called_once_with("graph.png")
+    assert report.graph == "graph.png"
 
 
 def test_generate_array():
