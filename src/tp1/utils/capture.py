@@ -1,4 +1,4 @@
-from scapy.all import sniff
+from scapy.all import sniff, ARP
 
 from src.tp1.utils.lib import choose_interface
 from tp1.utils.config import logger
@@ -10,6 +10,7 @@ class Capture:
         self.summary = ""
         self.packets = []    # liste des paquets captures
         self.protocols = {}  # nom du protocole -> nombre de paquets
+        self.attacks = []    # liste des attaques detectees
 
     def capture_traffic(self) -> None:
         """
@@ -46,6 +47,32 @@ class Capture:
                 else:
                     self.protocols[name] = 1
         return self.protocols
+
+    def add_attack(self, attack_type, protocol, ip, mac) -> None:
+        """
+        Ajoute une attaque a la liste si elle n'y est pas deja
+        """
+        attack = {"type": attack_type, "protocol": protocol, "ip": ip, "attacker": mac}
+        # Evite d'ajouter plusieurs fois la meme attaque
+        if attack not in self.attacks:
+            self.attacks.append(attack)
+            logger.warning(f"Attaque detectee : {attack}")
+
+    def detect_arp_spoofing(self) -> None:
+        """
+        Detecte l'ARP spoofing : une meme IP annoncee avec deux MAC differentes
+        """
+        table = {}  # IP -> MAC vue en premier
+        for pkt in self.packets:
+            # op == 2 correspond a une reponse ARP (is-at)
+            if pkt.haslayer(ARP) and pkt[ARP].op == 2:
+                ip = pkt[ARP].psrc
+                mac = pkt[ARP].hwsrc
+                # Si l'IP est deja connue avec une autre MAC, c'est suspect
+                if ip in table and table[ip] != mac:
+                    self.add_attack("arp_spoofing", "ARP", ip, mac)
+                elif ip not in table:
+                    table[ip] = mac
 
     def analyse(self, protocols: str) -> None:
         """

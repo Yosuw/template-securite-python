@@ -29,6 +29,7 @@ def test_capture_init():
     assert capture.summary == ""
     assert capture.packets == []
     assert capture.protocols == {}
+    assert capture.attacks == []
 
 
 def test_given_capture_when_capture_traffic_then_packets_are_stored():
@@ -79,6 +80,52 @@ def test_sort_network_protocols():
 
     # Then
     assert list(result.items()) == [("TCP", 5), ("UDP", 3), ("ARP", 1)]
+
+
+def test_add_attack_without_duplicate():
+    # Given
+    capture = Capture()
+
+    # When
+    capture.add_attack("arp_spoofing", "ARP", "192.168.1.1", "aa:aa:aa:aa:aa:aa")
+    capture.add_attack("arp_spoofing", "ARP", "192.168.1.1", "aa:aa:aa:aa:aa:aa")
+
+    # Then
+    assert len(capture.attacks) == 1
+
+
+def test_detect_arp_spoofing():
+    # Given
+    capture = Capture()
+    capture.packets = [
+        # Reponse legitime du routeur
+        Ether() / ARP(op=2, psrc="192.168.1.1", hwsrc="11:11:11:11:11:11"),
+        # L'attaquant annonce la meme IP avec sa propre MAC
+        Ether() / ARP(op=2, psrc="192.168.1.1", hwsrc="aa:bb:cc:dd:ee:ff"),
+    ]
+
+    # When
+    capture.detect_arp_spoofing()
+
+    # Then
+    assert capture.attacks == [
+        {"type": "arp_spoofing", "protocol": "ARP", "ip": "192.168.1.1", "attacker": "aa:bb:cc:dd:ee:ff"}
+    ]
+
+
+def test_detect_arp_spoofing_with_legitimate_traffic():
+    # Given
+    capture = Capture()
+    capture.packets = [
+        Ether() / ARP(op=2, psrc="192.168.1.1", hwsrc="11:11:11:11:11:11"),
+        Ether() / ARP(op=2, psrc="192.168.1.1", hwsrc="11:11:11:11:11:11"),
+    ]
+
+    # When
+    capture.detect_arp_spoofing()
+
+    # Then
+    assert capture.attacks == []
 
 
 def test_analyse():
