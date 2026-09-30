@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+import matplotlib.pyplot as plt
 from fpdf import FPDF
 
 from src.tp1.utils.report import Report
@@ -50,12 +51,10 @@ def test_concat_report_with_array():
 def test_concat_report_with_graph(tmp_path):
     # Given
     # On genere une vraie image PNG dans un dossier temporaire
-    import pygal
-
     graph_path = str(tmp_path / "graph.png")
-    chart = pygal.Bar()
-    chart.add("Paquets", [5, 1])
-    chart.render_to_png(graph_path)
+    plt.bar(["TCP", "ARP"], [5, 1])
+    plt.savefig(graph_path)
+    plt.close()
 
     report = Report(MagicMock(), "test.pdf", "Test summary")
     report.graph = graph_path
@@ -89,13 +88,13 @@ def test_generate_graph():
     report = Report(capture, "test.pdf", "Test summary")
 
     # When
-    # On simule pygal pour ne pas creer de fichier pendant le test
-    with patch("src.tp1.utils.report.pygal") as mock_pygal:
+    # On simule matplotlib pour ne pas creer de fichier pendant le test
+    with patch("src.tp1.utils.report.plt") as mock_plt:
         report.generate("graph")
 
     # Then
-    mock_pygal.Bar().add.assert_called_once_with("Paquets", [5, 1])
-    mock_pygal.Bar().render_to_png.assert_called_once_with("graph.png")
+    mock_plt.bar.assert_called_once_with(["TCP", "ARP"], [5, 1])
+    mock_plt.savefig.assert_called_once_with("graph.png")
     assert report.graph == "graph.png"
 
 

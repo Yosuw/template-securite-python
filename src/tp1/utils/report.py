@@ -1,4 +1,4 @@
-import pygal
+import matplotlib.pyplot as plt
 from fpdf import FPDF
 
 from tp1.utils.capture import Capture
@@ -69,13 +69,15 @@ class Report:
             # Protocoles tries par nombre de paquets
             protocols = self.capture.sort_network_protocols()
             # Diagramme en barres : une barre par protocole
-            chart = pygal.Bar()
-            chart.title = "Nombre de paquets par protocole"
-            chart.x_labels = list(protocols.keys())
-            chart.add("Paquets", list(protocols.values()))
+            plt.figure(figsize=(8, 4))
+            plt.bar(list(protocols.keys()), list(protocols.values()))
+            plt.title("Nombre de paquets par protocole")
+            plt.ylabel("Paquets")
+            plt.tight_layout()
             # Export en PNG pour pouvoir l'inserer dans le PDF
             graph = "graph.png"
-            chart.render_to_png(graph)
+            plt.savefig(graph)
+            plt.close()
             self.graph = graph
         elif param == "array":
             # Protocoles tries par nombre de paquets

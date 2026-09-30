@@ -26,13 +26,7 @@ def main() -> None:
     capture.analyse("tcp")
     summary = capture.get_summary()
 
-    filename = "report.pdf"
-    report = Report(capture, filename, summary)
-    report.generate("graph")
-    report.generate("array")
-    report.save(filename)
-
-    # Ecriture du rapport JSON pour la correction automatique
+    # Ecriture du rapport JSON en premier pour la correction automatique
     result = {
         "protocols": capture.protocols,
         "attacks": capture.get_json_attacks(),
@@ -41,6 +35,12 @@ def main() -> None:
     with open(args.out, "w") as f:
         json.dump(result, f, indent=2)
     logger.info(f"Rapport JSON genere : {args.out}")
+
+    filename = "report.pdf"
+    report = Report(capture, filename, summary)
+    report.generate("graph")
+    report.generate("array")
+    report.save(filename)
 
 
 if __name__ == "__main__":
