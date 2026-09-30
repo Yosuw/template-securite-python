@@ -136,6 +136,11 @@ class Capture:
         logger.debug(f"All protocols: {all_protocols}")
         logger.debug(f"Sorted protocols: {sort}")
 
+        # Lancement des differentes detections
+        self.detect_arp_spoofing()
+        self.detect_syn_scan()
+        self.detect_sql_injection()
+
         self.summary = self._gen_summary()
 
     def get_summary(self) -> str:
@@ -149,5 +154,13 @@ class Capture:
         """
         Generate summary
         """
-        summary = ""
+        # Si aucune attaque, le trafic est legitime
+        if len(self.attacks) == 0:
+            return "Tout va bien, aucun trafic illegitime detecte."
+        summary = "Attaques detectees :\n"
+        # Une ligne par attaque avec le protocole, l'IP et la MAC de l'attaquant
+        for attack in self.attacks:
+            summary += f"- {attack['type']} ({attack['protocol']}) : IP {attack['ip']}, MAC {attack['attacker']}\n"
+        if self.flag:
+            summary += f"Flag : {self.flag}\n"
         return summary

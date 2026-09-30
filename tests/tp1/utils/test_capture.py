@@ -228,7 +228,7 @@ def test_get_summary():
     assert result == "Test summary"
 
 
-def test_gen_summary():
+def test_gen_summary_without_attack():
     # Given
     capture = Capture()
 
@@ -236,4 +236,19 @@ def test_gen_summary():
     result = capture._gen_summary()
 
     # Then
-    assert result == ""  # Method currently returns empty string
+    assert result == "Tout va bien, aucun trafic illegitime detecte."
+
+
+def test_gen_summary_with_attacks():
+    # Given
+    capture = Capture()
+    capture.add_attack("arp_spoofing", "ARP", "192.168.1.1", "aa:bb:cc:dd:ee:ff")
+    capture.flag = "ESGI{Test_Flag}"
+
+    # When
+    result = capture._gen_summary()
+
+    # Then
+    assert "arp_spoofing" in result
+    assert "aa:bb:cc:dd:ee:ff" in result
+    assert "ESGI{Test_Flag}" in result
