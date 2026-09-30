@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch
 from scapy.all import Ether, IP, TCP, ARP, Raw
-from src.tp1.utils.capture import Capture
+from src.tp1.utils.capture import Capture, is_http
 
 
 @pytest.fixture(autouse=True)
@@ -90,8 +90,27 @@ def test_get_all_protocols():
     result = capture.get_all_protocols()
 
     # Then
-    # Ether et Raw ne doivent pas etre comptes
-    assert result == {"IP": 2, "TCP": 2, "ARP": 1}
+    # Raw ne doit pas etre compte et Ether est renomme en Ethernet
+    assert result == {"Ethernet": 3, "IP": 2, "TCP": 2, "ARP": 1}
+
+
+def test_get_all_protocols_with_http():
+    # Given
+    capture = Capture()
+    capture.packets = [Ether() / IP() / TCP() / Raw(b"GET /index.html HTTP/1.1\r\n\r\n")]
+
+    # When
+    result = capture.get_all_protocols()
+
+    # Then
+    assert result == {"Ethernet": 1, "IP": 1, "TCP": 1, "HTTP": 1}
+
+
+def test_is_http():
+    assert is_http(Ether() / IP() / TCP() / Raw(b"GET / HTTP/1.1"))
+    assert is_http(Ether() / IP() / TCP() / Raw(b"HTTP/1.1 200 OK"))
+    assert not is_http(Ether() / IP() / TCP() / Raw(b"test"))
+    assert not is_http(Ether() / IP() / TCP())
 
 
 def test_sort_network_protocols():
@@ -226,7 +245,25 @@ def test_detect_sql_injection():
     ]
     assert capture.flag == "ESGI{Test_Flag}"
 
+def test_detect_sql_injection_ignores_fake_flags():
+    # Given
+    capture = Capture()
+    # Vraie injection avec le vrai flag dans l'URL
+    real = b"GET /login?user=admin%27+or+1%3D1--&token=ESGI{vrai} HTTP/1.1\r\nX-Note: ' OR 1=1\r\n\r\n"
+    # Faux flag cache dans le corps d'une requete
+    fake = b"GET /notes.txt HTTP/1.1\r\n\r\n' OR 1=1 -- le flag est ESGI{faux}"
+    capture.packets = [
+        Ether(src="aa:bb:cc:dd:ee:ff") / IP(src="10.0.0.5") / TCP(dport=80) / Raw(real),
+        Ether(src="aa:bb:cc:dd:ee:ff") / IP(src="10.0.0.6") / TCP(dport=80) / Raw(fake),
+    ]
 
+    # When
+    capture.detect_sql_injection()
+
+    # Then
+    assert capture.flag == "ESGI{vrai}"
+    assert len(capture.attacks) == 1
+    
 def test_detect_sql_injection_with_legitimate_traffic():
     # Given
     capture = Capture()

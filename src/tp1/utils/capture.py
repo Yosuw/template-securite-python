@@ -6,6 +6,19 @@ from src.tp1.utils.lib import choose_interface
 from tp1.utils.config import logger
 
 
+HTTP_METHODS = ("GET ", "POST ", "PUT ", "DELETE ", "HEAD ", "OPTIONS ", "PATCH ", "HTTP/")
+
+
+def is_http(pkt) -> bool:
+    """
+    Indique si un paquet TCP contient du HTTP (requete ou reponse)
+    """
+    if not (pkt.haslayer(TCP) and pkt.haslayer(Raw)):
+        return False
+    data = pkt[Raw].load.decode(errors="ignore")
+    return data.startswith(HTTP_METHODS)
+
+
 class Capture:
     def __init__(self, pcap: str = "") -> None:
         self.pcap = pcap  # fichier pcap a analyser (vide = capture en direct)
@@ -45,13 +58,22 @@ class Capture:
         """
         self.protocols = {}
         for pkt in self.packets:
+            names = []
             # Un paquet contient plusieurs couches (ex : Ether / IP / TCP)
             for layer in pkt.layers():
                 name = layer.__name__
-                # On ignore les couches qui ne sont pas des protocoles interessants
-                if name in ["Ether", "Raw", "Padding"]:
+                # On ignore les couches qui ne sont pas des protocoles
+                if name in ["Raw", "Padding"]:
                     continue
-                # On incremente le compteur du protocole
+                # Scapy appelle la couche Ethernet "Ether"
+                if name == "Ether":
+                    name = "Ethernet"
+                names.append(name)
+            # Scapy ne reconnait pas le HTTP tout seul : on le repere dans les donnees TCP
+            if is_http(pkt):
+                names.append("HTTP")
+            # On incremente le compteur de chaque protocole du paquet
+            for name in names:
                 if name in self.protocols:
                     self.protocols[name] += 1
                 else:
@@ -131,25 +153,28 @@ class Capture:
 
     def detect_sql_injection(self) -> None:
         """
-        Detecte une injection SQL dans le contenu des paquets TCP et recupere le flag
+        Detecte une injection SQL dans les requetes HTTP et recupere le flag
         """
         # Mots cles typiques d'une injection SQL
         keywords = ["' or", "union select", "1=1", "--", "drop table"]
         for pkt in self.packets:
-            # On regarde seulement les paquets TCP qui ont des donnees
-            if pkt.haslayer(IP) and pkt.haslayer(TCP) and pkt.haslayer(Raw):
-                # Decodage des caracteres encodes dans les URL (%27 -> ', + -> espace...)
-                data = unquote_plus(pkt[Raw].load.decode(errors="ignore"))
-                data_lower = data.lower()
-                for word in keywords:
-                    if word in data_lower:
-                        self.add_attack("sql_injection", "TCP", pkt[IP].src, pkt[Ether].src)
-                        # Recherche du flag ESGI{...} dans le paquet
-                        start = data_lower.find("esgi{")
-                        if start != -1:
-                            end = data.find("}", start)
-                            self.flag = data[start:end + 1]
-                        break
+            if not (pkt.haslayer(IP) and is_http(pkt)):
+                continue
+            # On analyse seulement la ligne de requete (ex : GET /login?user=... HTTP/1.1)
+            # et pas le reste du paquet, qui peut contenir de faux flags
+            first_line = pkt[Raw].load.decode(errors="ignore").split("\r\n")[0]
+            # Decodage des caracteres encodes dans les URL (%27 -> ', + -> espace...)
+            request = unquote_plus(first_line)
+            request_lower = request.lower()
+            for word in keywords:
+                if word in request_lower:
+                    self.add_attack("sql_injection", "TCP", pkt[IP].src, pkt[Ether].src)
+                    # On garde le premier flag ESGI{...} trouve dans une requete malveillante
+                    start = request_lower.find("esgi{")
+                    if start != -1 and self.flag is None:
+                        end = request.find("}", start)
+                        self.flag = request[start:end + 1]
+                    break
 
     def analyse(self, protocols: str) -> None:
         """
@@ -188,7 +213,7 @@ class Capture:
                 attacker = attack["ip"]
             json_attacks.append({"type": attack["type"], "attacker": attacker})
         return json_attacks
-    
+
     def get_summary(self) -> str:
         """
         Return summary
