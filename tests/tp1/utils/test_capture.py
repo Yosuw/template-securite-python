@@ -1,5 +1,13 @@
+import pytest
 from unittest.mock import patch
 from src.tp1.utils.capture import Capture
+
+
+@pytest.fixture(autouse=True)
+def mock_interface():
+    # Evite de demander une interface a l'utilisateur pendant les tests
+    with patch("src.tp1.utils.capture.choose_interface", return_value="eth0"):
+        yield
 
 
 def test_capture_init():
@@ -7,7 +15,7 @@ def test_capture_init():
     capture = Capture()
 
     # Then
-    assert capture.interface == ""
+    assert capture.interface == "eth0"
     assert capture.summary == ""
 
 
@@ -20,7 +28,7 @@ def test_given_capture_when_capture_traffic_then_interface_is_set():
 
     # Then
     # This is a minimal test since the method doesn't do much yet
-    assert capture.interface == ""
+    assert capture.interface == "eth0"
 
 
 def test_sort_network_protocols():
