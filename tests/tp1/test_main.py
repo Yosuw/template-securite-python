@@ -34,7 +34,7 @@ def test_main(tmp_path):
         mock_args.return_value.pcap = "capture.pcap"
         mock_args.return_value.out = out
         mock_capture.return_value.protocols = {"TCP": 1}
-        mock_capture.return_value.attacks = []
+        mock_capture.return_value.get_json_attacks.return_value = []
         mock_capture.return_value.flag = None
         main()
 

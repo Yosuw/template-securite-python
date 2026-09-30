@@ -35,7 +35,7 @@ def main() -> None:
     # Ecriture du rapport JSON pour la correction automatique
     result = {
         "protocols": capture.protocols,
-        "attacks": capture.attacks,
+        "attacks": capture.get_json_attacks(),
         "flag": capture.flag,
     }
     with open(args.out, "w") as f:

@@ -102,7 +102,7 @@ class Capture:
         # Au dela de 15 ports differents, on considere que c'est un scan
         for ip in ports:
             if len(ports[ip]) > 15:
-                self.add_attack("syn_scan", "TCP", ip, macs[ip])
+                self.add_attack("port_scan", "TCP", ip, macs[ip])
 
     def detect_sql_injection(self) -> None:
         """
@@ -150,6 +150,20 @@ class Capture:
 
         self.summary = self._gen_summary()
 
+    def get_json_attacks(self) -> list[dict]:
+        """
+        Retourne les attaques au format attendu dans report.json
+        """
+        json_attacks = []
+        for attack in self.attacks:
+            # Pour l'ARP spoofing on donne la MAC, pour les autres attaques l'IP
+            if attack["type"] == "arp_spoofing":
+                attacker = attack["attacker"]
+            else:
+                attacker = attack["ip"]
+            json_attacks.append({"type": attack["type"], "attacker": attacker})
+        return json_attacks
+    
     def get_summary(self) -> str:
         """
         Return summary

@@ -152,7 +152,7 @@ def test_detect_arp_spoofing_with_legitimate_traffic():
     assert capture.attacks == []
 
 
-def test_detect_syn_scan():
+def test_detect_port_scan():
     # Given
     capture = Capture()
     # L'attaquant envoie un SYN sur 20 ports differents
@@ -166,7 +166,7 @@ def test_detect_syn_scan():
 
     # Then
     assert capture.attacks == [
-        {"type": "syn_scan", "protocol": "TCP", "ip": "10.0.0.5", "attacker": "aa:bb:cc:dd:ee:ff"}
+        {"type": "port_scan", "protocol": "TCP", "ip": "10.0.0.5", "attacker": "aa:bb:cc:dd:ee:ff"}
     ]
 
 
@@ -218,7 +218,24 @@ def test_detect_sql_injection_with_legitimate_traffic():
     # Then
     assert capture.attacks == []
     assert capture.flag is None
-    
+
+def test_get_json_attacks():
+    # Given
+    capture = Capture()
+    capture.add_attack("arp_spoofing", "ARP", "192.168.1.1", "aa:bb:cc:dd:ee:ff")
+    capture.add_attack("port_scan", "TCP", "10.0.0.5", "11:11:11:11:11:11")
+    capture.add_attack("sql_injection", "TCP", "10.0.0.9", "11:11:11:11:11:11")
+
+    # When
+    result = capture.get_json_attacks()
+
+    # Then
+    assert result == [
+        {"type": "arp_spoofing", "attacker": "aa:bb:cc:dd:ee:ff"},
+        {"type": "port_scan", "attacker": "10.0.0.5"},
+        {"type": "sql_injection", "attacker": "10.0.0.9"},
+    ]
+       
 def test_analyse():
     # Given
     capture = Capture()
