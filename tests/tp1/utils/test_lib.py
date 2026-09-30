@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from src.tp1.utils.lib import hello_world, choose_interface
 
 
@@ -12,9 +13,27 @@ def test_when_hello_world_then_return_hello_world():
     assert result == string
 
 
-def test_when_choose_interface_then_return_empty_string():
-    # When
-    result = choose_interface()
+def test_when_choose_interface_then_return_chosen_interface():
+    # Given
+    with (
+        patch("src.tp1.utils.lib.get_if_list", return_value=["lo", "eth0"]),
+        patch("builtins.input", return_value="1"),
+    ):
+        # When
+        result = choose_interface()
 
     # Then
-    assert result == ""
+    assert result == "eth0"
+
+
+def test_when_choose_interface_with_invalid_choice_then_ask_again():
+    # Given
+    with (
+        patch("src.tp1.utils.lib.get_if_list", return_value=["lo", "eth0"]),
+        patch("builtins.input", side_effect=["9", "abc", "0"]),
+    ):
+        # When
+        result = choose_interface()
+
+    # Then
+    assert result == "lo"

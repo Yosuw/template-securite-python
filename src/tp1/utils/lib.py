@@ -1,3 +1,6 @@
+from scapy.all import get_if_list
+
+
 def hello_world() -> str:
     """
     Hello world function
@@ -14,4 +17,16 @@ def choose_interface() -> str:
     :return: network interface
     """
     interface = ""
+    # Liste des interfaces reseau disponibles sur la machine
+    interfaces = get_if_list()
+    for i in range(len(interfaces)):
+        print(f"{i} : {interfaces[i]}")
+
+    # On redemande tant que le choix n'est pas valide
+    while interface == "":
+        choice = input("Choisissez une interface : ")
+        if choice.isdigit() and int(choice) < len(interfaces):
+            interface = interfaces[int(choice)]
+        else:
+            print("Choix invalide")
     return interface
