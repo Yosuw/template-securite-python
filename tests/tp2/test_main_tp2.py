@@ -31,11 +31,10 @@ def test_main(tmp_path):
         mock_client.return_value.ask.return_value = None
         main()
 
-    # Then : un fichier <sha256>.json a ete ecrit
-    files = list(out.glob("*.json"))
-    assert len(files) == 1
-    result = json.loads(files[0].read_text())
-    assert files[0].name == f"{result['sha256']}.json"
+    # Then : le resultat est ecrit sous les noms attendus
+    result = json.loads((out / "a.bin.triage.json").read_text())
+    assert (out / "a.triage.json").exists()
+    assert (out / f"{result['sha256']}.json").exists()
     assert result["flag"] == "ESGI{test}"
     assert result["iocs"]["domains"] == ["evil.example.test"]
     # Le rapport PDF est ecrit a cote du JSON

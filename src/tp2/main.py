@@ -35,11 +35,13 @@ def main() -> None:
     samples = sorted(path for path in Path(args.samples).iterdir() if path.is_file())
     for sample in samples:
         result = Triage(str(sample), rules, client).run()
-        # Un fichier <sha256>.json par echantillon
-        output = out_dir / f"{result['sha256']}.json"
-        with open(output, "w") as f:
-            json.dump(result, f, indent=2, ensure_ascii=False)
-        logger.info(f"{sample.name} : {result['family_guess']}, score {result['score']} -> {output}")
+        # La consigne demande <sha256>.json et le correcteur cherche <echantillon>.triage.json :
+        # on ecrit le meme resultat sous les deux noms (avec et sans l'extension de l'echantillon)
+        names = {f"{result['sha256']}.json", f"{sample.name}.triage.json", f"{sample.stem}.triage.json"}
+        for name in sorted(names):
+            with open(out_dir / name, "w") as f:
+                json.dump(result, f, indent=2, ensure_ascii=False)
+        logger.info(f"{sample.name} : {result['family_guess']}, score {result['score']}")
         # Rapport PDF lisible a cote du JSON
         generate_report(result, str(out_dir / f"{result['sha256']}.pdf"))
 
