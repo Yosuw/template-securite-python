@@ -38,3 +38,5 @@ def test_main(tmp_path):
     assert files[0].name == f"{result['sha256']}.json"
     assert result["flag"] == "ESGI{test}"
     assert result["iocs"]["domains"] == ["evil.example.test"]
+    # Le rapport PDF est ecrit a cote du JSON
+    assert (out / f"{result['sha256']}.pdf").exists()

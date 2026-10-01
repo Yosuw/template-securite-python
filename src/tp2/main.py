@@ -4,6 +4,7 @@ from pathlib import Path
 
 from tp2.utils.config import logger
 from tp2.utils.llm import LLMClient
+from tp2.utils.report import generate_report
 from tp2.utils.triage import Triage
 from tp2.utils.yara_scan import load_rules
 
@@ -39,6 +40,8 @@ def main() -> None:
         with open(output, "w") as f:
             json.dump(result, f, indent=2, ensure_ascii=False)
         logger.info(f"{sample.name} : {result['family_guess']}, score {result['score']} -> {output}")
+        # Rapport PDF lisible a cote du JSON
+        generate_report(result, str(out_dir / f"{result['sha256']}.pdf"))
 
 
 if __name__ == "__main__":
