@@ -67,3 +67,36 @@ L'outil génère :
 ```bash
 poetry run pytest tests/tp1
 ```
+
+## TP2 - Triage automatisé de malware
+
+Outil de triage en Python : pour chaque échantillon, il calcule les empreintes et l'entropie, analyse le binaire avec lief, extrait les IOC, applique des règles YARA, puis produit un verdict (famille, techniques MITRE ATT&CK, score) avec l'aide d'un LLM.
+
+### Utilisation
+
+```bash
+poetry run tp2 --samples DOSSIER --rules DOSSIER --out DOSSIER
+```
+
+- `--samples` : dossier des échantillons à analyser
+- `--rules` : dossier de règles YARA supplémentaires (facultatif, nos règles sont intégrées au code)
+- `--out` : dossier de sortie, avec un `<sha256>.json` et un `<sha256>.pdf` par échantillon
+
+### LLM
+
+- **OpenRouter** si la variable `OPENROUTER_API_KEY` est définie (fichier `.env`) ;
+- sinon **Ollama** en local (`ollama pull qwen2.5:3b`) ;
+- sans LLM disponible (hors réseau), un verdict déterministe calculé à partir des preuves est utilisé.
+
+### Sécurité de la chaîne LLM
+
+- Le binaire n'est jamais envoyé au LLM : seul un résumé structuré (IOC, fonctions suspectes, matches YARA, entropie) est transmis, entre des délimiteurs `<DONNEES_NON_FIABLES>`.
+- La réponse est validée : JSON strict, champs attendus, score borné entre 0 et 10.
+- Le LLM ne décide jamais seul : il ne peut pas faire baisser le score calculé à partir des règles.
+- Les IOC sont cherchés dans l'overlay du binaire, et seul le flag écrit après `FLAG=` est retenu, ce qui écarte les leurres.
+
+### Tests
+
+```bash
+poetry run pytest tests/tp2
+```
