@@ -24,6 +24,9 @@ class Triage:
     """
 
     def __init__(self, path: str, rules: list, client: LLMClient) -> None:
+        """
+        Prepare l'analyse d'un echantillon avec les regles YARA et le client LLM
+        """
         self.path = path
         self.rules = rules
         self.client = client

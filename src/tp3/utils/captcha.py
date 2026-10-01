@@ -1,5 +1,8 @@
 class Captcha:
     def __init__(self, url):
+        """
+        Initialise le captcha a resoudre a partir de son URL
+        """
         self.url = url
         self.image = ""
         self.value = ""

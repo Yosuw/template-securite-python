@@ -25,12 +25,18 @@ def generate_report(result: dict, path: str) -> None:
     pdf.ln(3)
 
     def section(title: str) -> None:
+        """
+        Ajoute un titre de section au rapport
+        """
         pdf.ln(2)
         pdf.set_font("Helvetica", "B", 12)
         pdf.cell(0, 8, title, new_x="LMARGIN", new_y="NEXT")
         pdf.set_font("Helvetica", size=10)
 
     def line(label: str, value: object) -> None:
+        """
+        Ajoute une ligne "label : valeur" au rapport
+        """
         pdf.multi_cell(width, 6, clean_text(f"{label} : {value}"), new_x="LMARGIN", new_y="NEXT")
 
     section("Fichier")

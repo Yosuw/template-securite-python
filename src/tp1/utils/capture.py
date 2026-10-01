@@ -29,6 +29,9 @@ def is_http(pkt: Packet) -> bool:
 
 class Capture:
     def __init__(self, pcap: str = "") -> None:
+        """
+        Initialise la capture : fichier pcap a lire ou interface reseau a ecouter
+        """
         self.pcap = pcap  # fichier pcap a analyser (vide = capture en direct)
         # On ne demande une interface que si aucun fichier pcap n'est donne
         self.interface = "" if pcap else choose_interface()

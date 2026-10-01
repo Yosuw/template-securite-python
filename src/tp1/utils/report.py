@@ -6,6 +6,9 @@ from tp1.utils.capture import Capture
 
 class Report:
     def __init__(self, capture: Capture, filename: str, summary: str) -> None:
+        """
+        Prepare le rapport a partir des resultats de la capture
+        """
         self.capture = capture
         self.filename = filename
         self.title = "Rapport TP1 - Analyse du trafic reseau"

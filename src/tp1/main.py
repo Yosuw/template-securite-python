@@ -17,6 +17,9 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 
 
 def main() -> None:
+    """
+    Capture ou lit le trafic, l'analyse, puis genere le rapport JSON et le PDF
+    """
     args = parse_args()
     logger.info("Starting TP1")
 

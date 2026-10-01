@@ -60,6 +60,9 @@ class LLMClient:
     """
 
     def __init__(self, backend: str | None = None) -> None:
+        """
+        Choisit le backend : OpenRouter si une cle API est configuree, sinon Ollama
+        """
         # OpenRouter si une cle API est configuree, sinon Ollama en local
         if backend is None:
             backend = "openrouter" if os.getenv("OPENROUTER_API_KEY") else "ollama"
@@ -79,6 +82,9 @@ class LLMClient:
             return None
 
     def _ask_openrouter(self, system: str, user: str) -> str:
+        """
+        Interroge l'API OpenRouter (compatible avec l'API OpenAI)
+        """
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={"Authorization": f"Bearer {os.environ['OPENROUTER_API_KEY']}"},
@@ -92,6 +98,9 @@ class LLMClient:
         return response.json()["choices"][0]["message"]["content"]
 
     def _ask_ollama(self, system: str, user: str) -> str:
+        """
+        Interroge le serveur Ollama installe en local
+        """
         response = requests.post(
             "http://localhost:11434/api/chat",
             json={

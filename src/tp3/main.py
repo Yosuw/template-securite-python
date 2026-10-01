@@ -3,6 +3,9 @@ from src.tp3.utils.session import Session
 
 
 def main():
+    """
+    Lance la resolution de chaque challenge CAPTCHA
+    """
     logger.info("Starting TP3")
 
     ip = "31.220.95.27:9002"
