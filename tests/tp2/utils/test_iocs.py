@@ -1,4 +1,10 @@
-from src.tp2.utils.iocs import extract_flag, extract_iocs, extract_strings, is_domain, is_valid_ip
+from src.tp2.utils.iocs import (
+    extract_flag,
+    extract_iocs,
+    extract_strings,
+    is_domain,
+    is_valid_ip,
+)
 
 # Faux bloc de donnees : chaines separees par des octets nuls, comme dans un binaire
 FAKE_DATA = (

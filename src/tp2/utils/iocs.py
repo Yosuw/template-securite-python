@@ -13,7 +13,10 @@ PATH_RE = re.compile(r"[A-Za-z]:\\.+")
 FLAG_RE = re.compile(r"FLAG=(ESGI\{[^}]+\})")
 
 # Extensions de fichiers qui ressemblent a des domaines (ex : urlmon.dll)
-FILE_EXTENSIONS = set("dll exe sys so debug txt log dat bin ini cfg tmp php html".split())
+FILE_EXTENSIONS = {
+    "dll", "exe", "sys", "so", "debug", "txt", "log",
+    "dat", "bin", "ini", "cfg", "tmp", "php", "html",
+}  # fmt: skip
 
 
 def extract_strings(data: bytes) -> list[str]:
