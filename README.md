@@ -100,3 +100,43 @@ poetry run tp2 --samples DOSSIER --rules DOSSIER --out DOSSIER
 ```bash
 poetry run pytest tests/tp2
 ```
+
+## TP3 - Breach the target
+
+Exploit automatisé qui enchaîne une phase web (fuzzing + CAPTCHA) et une phase réseau (décodage chronométré) pour récupérer deux drapeaux.
+
+### Utilisation
+
+```bash
+poetry run tp3 --target http://localhost:8080
+```
+
+Sortie :
+
+```
+[+] FLAG1: ESGI{web_...}
+[+] FLAG_FINAL: ESGI{chain_...}
+```
+
+### Phase web (flag1)
+
+1. Fuzzing des endpoints à partir de la wordlist embarquée (`src/tp3/data/wordlist.txt`) pour trouver la page cachée, repérée parce qu'elle contient un formulaire CAPTCHA.
+2. Résolution du CAPTCHA image **sans OCR externe** : segmentation des glyphes et comparaison à des gabarits rendus dans la police DejaVu Sans Bold. La réponse est postée avec le cookie de session jusqu'à réussite.
+3. La page révèle alors `flag1`, un `host:port` et une clé d'encodage.
+
+### Phase réseau (flag final)
+
+1. Connexion au service TCP révélé.
+2. Chaque jeton reçu est décodé (base64 puis XOR avec la clé) et renvoyé, en boucle, dans la fenêtre de temps.
+3. Après les rounds réussis, le serveur renvoie le drapeau final.
+
+### Dépendances
+
+- `requests` pour la phase web, `socket` (bibliothèque standard) pour la phase réseau.
+- `pillow`, `numpy` et la police fournie par `matplotlib` pour résoudre le CAPTCHA : aucune dépendance système (pas de tesseract).
+
+### Tests
+
+```bash
+poetry run pytest tests/tp3/
+```
