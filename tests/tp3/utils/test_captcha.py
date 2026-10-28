@@ -8,6 +8,7 @@ from src.tp3.utils.captcha import (
     CHARSET,
     FONT_PATH,
     Captcha,
+    _normalize,
     build_templates,
     segment,
 )
@@ -53,3 +54,12 @@ def test_get_value():
     captcha = Captcha(render_captcha("XYZ12"), TEMPLATES)
     captcha.solve()
     assert captcha.get_value() == "XYZ12"
+
+
+def test_normalize_shape_and_content():
+    # un petit bloc noir decentre -> recadre et redimensionne a la taille fixe
+    mask = np.zeros((20, 20), dtype=bool)
+    mask[4:9, 6:10] = True
+    result = _normalize(mask)
+    assert result.shape == (BOX[1], BOX[0])
+    assert result.any()

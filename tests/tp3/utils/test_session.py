@@ -73,3 +73,11 @@ def test_breach(tmp_path):
 
     assert session.breach() == pivot
     assert session.result["flag1"] == "ESGI{web}"
+
+
+def test_run(tmp_path, monkeypatch):
+    session = make_session(tmp_path)
+    monkeypatch.setattr(session, "find_endpoint", lambda: "http://cible/internal-panel")
+    pivot = {"flag1": "ESGI{web}", "host": "127.0.0.1", "port": 9090, "key": "ff193b22"}
+    monkeypatch.setattr(session, "breach", lambda: pivot)
+    assert session.run() == pivot
