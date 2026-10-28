@@ -1,49 +1,55 @@
-from src.tp3.utils.captcha import Captcha
+import io
+
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
+
+from src.tp3.utils.captcha import (
+    BOX,
+    CHARSET,
+    FONT_PATH,
+    Captcha,
+    build_templates,
+    segment,
+)
+
+TEMPLATES = build_templates()
 
 
-def test_captcha_init():
-    # Given
-    url = "http://example.com/captcha"
+def render_captcha(text: str) -> bytes:
+    """Fabrique une image de captcha comme le serveur, pour les tests."""
+    font = ImageFont.truetype(str(FONT_PATH), 48)
+    img = Image.new("L", (260, 90), 255)
+    draw = ImageDraw.Draw(img)
+    x = 20
+    for char in text:
+        draw.text((x, 28), char, fill=0, font=font)
+        x += draw.textbbox((x, 28), char, font=font)[2] - x + 12
+    buffer = io.BytesIO()
+    img.save(buffer, "PNG")
+    return buffer.getvalue()
 
-    # When
-    captcha = Captcha(url)
 
-    # Then
-    assert captcha.url == url
-    assert captcha.image == ""
-    assert captcha.value == ""
+def test_build_templates():
+    templates = build_templates()
+    assert len(templates) == len(CHARSET)
+    assert templates["A"].shape == (BOX[1], BOX[0])
+
+
+def test_segment_counts_glyphs():
+    # Trois blocs noirs separes par des colonnes blanches
+    mask = np.zeros((10, 30), dtype=bool)
+    mask[:, 0:5] = True
+    mask[:, 12:17] = True
+    mask[:, 24:29] = True
+    assert len(segment(mask)) == 3
 
 
 def test_solve():
-    # Given
-    captcha = Captcha("http://example.com/captcha")
-
-    # When
-    captcha.solve()
-
-    # Then
-    assert captcha.value == "FIXME"
-
-
-def test_capture():
-    # Given
-    captcha = Captcha("http://example.com/captcha")
-
-    # When
-    captcha.capture()
-
-    # Then
-    # This is a minimal test since the method doesn't do anything yet
-    assert captcha.image == ""
+    captcha = Captcha(render_captcha("AB7K9"), TEMPLATES)
+    assert captcha.solve() == "AB7K9"
 
 
 def test_get_value():
-    # Given
-    captcha = Captcha("http://example.com/captcha")
-    captcha.value = "TEST123"
-
-    # When
-    result = captcha.get_value()
-
-    # Then
-    assert result == "TEST123"
+    captcha = Captcha(render_captcha("XYZ12"), TEMPLATES)
+    captcha.solve()
+    assert captcha.get_value() == "XYZ12"

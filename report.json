@@ -1,0 +1,27 @@
+{
+  "protocols": {
+    "Ethernet": 143,
+    "IP": 123,
+    "TCP": 95,
+    "HTTP": 13,
+    "ARP": 20,
+    "ICMP": 16,
+    "UDP": 12,
+    "DNS": 12
+  },
+  "attacks": [
+    {
+      "type": "arp_spoofing",
+      "attacker": "02:97:80:00:49:3b"
+    },
+    {
+      "type": "port_scan",
+      "attacker": "192.168.182.66"
+    },
+    {
+      "type": "sql_injection",
+      "attacker": "192.168.182.77"
+    }
+  ],
+  "flag": "ESGI{tp1_7d0073bb0e77}"
+}
